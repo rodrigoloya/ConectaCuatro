@@ -1,0 +1,105 @@
+﻿@using System.Drawing
+@inject ConectaCuatro.BusinessProcess.GameState State
+
+<HeadContent>
+    <style>
+        :root {
+         --board-bg: @ColorTranslator.ToHtml(BoardColor);
+         --player1: @ColorTranslator.ToHtml(Player1Color);
+         --player2: @ColorTranslator.ToHtml(Player2Color);
+        }
+    </style>
+</HeadContent>
+
+<div>
+    <nav>
+        @for(var i=0; i<7; i++){
+
+        }
+        <span title="Click to play a piece" @onclick="() => PlayPiece(0)">🔽</span>
+        <span title="Click to play a piece" @onclick="() => PlayPiece(1)">🔽</span>
+        <span title="Click to play a piece" @onclick="() => PlayPiece(2)">🔽</span>
+        <span title="Click to play a piece" @onclick="() => PlayPiece(3)">🔽</span>
+        <span title="Click to play a piece" @onclick="() => PlayPiece(4)">🔽</span>
+        <span title="Click to play a piece" @onclick="() => PlayPiece(5)">🔽</span>
+        <span title="Click to play a piece" @onclick="() => PlayPiece(6)">🔽</span>
+    </nav>
+    <article>
+        @WinnerMessage <button style="@ResetStyle" @onclick="ResetGame">Reset Game</button>
+        <br />
+        <span class="alert-danger">@ErrorMessage</span>
+        <span class="alert-info">@CurrentTurn</span>
+    
+    </article>
+    <div class="board">
+@for(int i =0; i<42; i++){
+  <span class="container board-row">
+                <span class="board-cell @Pieces[i]" id="@i">@($" ")</span>
+    </span>
+}
+
+    </div>
+
+</div>
+@code {
+    private string[] Pieces = new string[42];
+    private string WinnerMessage = string.Empty;
+    private string ErrorMessage = string.Empty;
+    private string CurrentTurn   => (WinnerMessage == string.Empty) ? $"Player {State.PlayerTurn}'s Turn" : string.Empty;
+    private string ResetStyle => string.Empty;//(WinnerMessage == string.Empty) ? "display: none;" : "";
+
+    [Parameter()]
+    public Color BoardColor { get; set; }
+     = ColorTranslator.FromHtml("yellow");
+
+    [Parameter()]
+    public Color Player1Color { get; set; }
+     = ColorTranslator.FromHtml("red");
+
+    [Parameter()]
+    public Color Player2Color { get; set; }
+     = ColorTranslator.FromHtml("blue");
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        ResetGame();
+
+    }
+
+    public void PlayPiece(byte column)
+    {
+        try
+        {
+            ErrorMessage = string.Empty;
+            var landingRow = State.PlayPiece(column);
+            var cssClass = $"player{State.PlayerTurn} col{column + 1} drop{landingRow + 1}";
+            Pieces[State.CurrentTurn] = cssClass;
+
+            WinnerMessage = State.CheckForWin() switch
+            {
+                BusinessProcess.WinState.Player1 => "Player 1 Wins !",
+                BusinessProcess.WinState.Player2 => "Player 2 Wins !",
+                BusinessProcess.WinState.Tie => "It is a tie !",
+                _ => string.Empty
+            };
+
+        }
+        catch (ConectaCuatro.BusinessProcess.InvalidMoveException err)
+        {
+            ErrorMessage = err.Message;
+        }
+      
+    }
+
+   
+
+
+    public void ResetGame(){
+        State.ResetGame();
+        WinnerMessage = string.Empty;
+        ErrorMessage = string.Empty;
+        Pieces = new string[42];
+    }
+
+}
