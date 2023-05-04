@@ -4,8 +4,8 @@ public class GameState
 {
 
     Ficha[] _pieces;
-    byte maxColumns;
-    byte maxRows;
+    short maxColumns;
+    short maxRows;
 
 
     public GameState()
@@ -37,11 +37,11 @@ public class GameState
 
     public Player[] Players { get { return _players; } }
 
-    public bool IsGameStarted { get; private set; }
+    public bool IsGameOver { get; private set; }
 
-    public byte PlayerTurn { get; set; }
+    public short PlayerTurn { get; set; }
 
-    public byte CurrentTurn { get; set; }
+    public short CurrentTurn { get; set; }
 
     
 
@@ -49,14 +49,14 @@ public class GameState
     {
         //Reset Score
         //set flag 
-        IsGameStarted = false;
+        IsGameOver = false;
         _pieces = ResetFichas();
         _CheckForWin = WinState.None;
         //Player Turn can be coin tossed
         PlayerTurn = 1;
     }
 
-    public byte PlayPiece(byte column)
+    public short PlayPiece(short column)
     {
         //Validar entrada
         if (column > maxColumns - 1)
@@ -79,11 +79,11 @@ public class GameState
 
 
         //Devolver la posicion de landing row
-        byte row = GetLandingRow(column);
+        short row = GetLandingRow(column);
 
 
         //Obterner la celda en la que caera la ficha basado en la columna
-        byte index = Convert.ToByte( row * maxColumns + column);
+        short index = Convert.ToInt16(  row * maxColumns + column );
         //si esta libre entonces marcarla como ocupada.
         _pieces[index].IsOccupied = true;
         _pieces[index].Player = _players[PlayerTurn - 1];
@@ -93,15 +93,15 @@ public class GameState
         CurrentTurn = index;
 
         //cambiar alternar jugador
-        PlayerTurn = (byte)(PlayerTurn == 1 ? 2 : 1);
+        PlayerTurn = (short)(PlayerTurn == 1 ? 2 : 1);
 
         CheckForWin(index);
         return row;
     }
 
-    private byte GetLandingRow(byte column)
+    private short GetLandingRow(short column)
     {
-        sbyte row = -1;        
+        short row = -1;        
         int idx = column;
 
         while (  row < maxRows -1 && _pieces[idx].IsOccupied == false)
@@ -113,12 +113,74 @@ public class GameState
         return Convert.ToByte( row);
     }
 
-    private bool CheckFordward(byte idx)
+    private bool CheckHorizontal(short idx)
+    {
+        //find the most farther from left
+
+        //mientras no sea null, mismo player, misma columna
+        short i = 1;
+        short newIndex = idx;
+        while (newIndex -1  >= 0 &&
+            _pieces[newIndex-1].Player!=null &&
+            _pieces[newIndex-1].Player.Id == _pieces[idx].Player.Id &&
+            _pieces[newIndex-1].Row == _pieces[idx].Row)
+        {
+            newIndex =Convert.ToByte( idx - i);
+            i++;
+        }
+        return CheckFordward(newIndex);
+    }
+    private bool CheckDiagonaUp(short idx)
+    {
+        //find the most farther from left
+
+        //mientras no sea null, mismo player, misma columna
+        short col =  _pieces[idx].Column;
+        short row =  _pieces[idx].Row;
+        short newIndex = idx;
+        short i = 0;
+        while (col >= 0 && row < maxRows &&
+            _pieces[idx - i + (maxColumns * i)].Player != null &&
+            _pieces[idx - i + (maxColumns * i)].Player.Id == _pieces[idx].Player.Id)
+        {
+            newIndex = Convert.ToByte(idx - i+(maxColumns*i));
+            i++;
+            col--;
+            row++;
+        }
+        return CheckDiagonalRightUp(newIndex);
+    }
+
+    private bool CheckDiagonaDown(short idx)
+    {
+        //find the most farther from left
+
+        //mientras no sea null, mismo player, misma columna
+        short col = _pieces[idx].Column;
+        short row = _pieces[idx].Row;
+        short newIndex = idx;
+        int i = 0;
+        if (col != 0 && row != 0)
+        {
+            while (col >= 0 && row >= 0 &&
+                _pieces[idx - i - (maxColumns * i)].Player != null &&
+                _pieces[idx - i - (maxColumns * i)].Player.Id == _pieces[idx].Player.Id)
+            {
+                newIndex = Convert.ToByte(idx - i - (maxColumns * i));
+                i++;
+                col--;
+                row--;
+            }
+        }
+        return CheckDiagonalRightDown(newIndex);
+    }
+
+    private bool CheckFordward(short idx)
     {
         var player = _pieces[idx].Player;
-        int count = 0;
-        int i = _pieces[idx].Column;
-        int j = 0;
+        short count = 0;
+        short i = _pieces[idx].Column;
+        short j = 0;
         for( ; i < maxColumns; i++)
         {
             if(_pieces[idx + j].Player != null &&
@@ -135,7 +197,7 @@ public class GameState
         return count >= 4;
     }
 
-    private bool CheckBackward(byte idx)
+    private bool CheckBackward(short idx)
     {
         var player = _pieces[idx].Player;
         int count = 0;
@@ -157,7 +219,7 @@ public class GameState
         return count >= 4;
     }
 
-    private bool CheckDownward(byte idx)
+    private bool CheckDownward(short idx)
     {
         var player = _pieces[idx].Player;
         int count = 0;
@@ -179,30 +241,9 @@ public class GameState
         return count >= 4;
     }
 
-    [Obsolete("Invalid Use case, players turns will never have a ficha above")]
-    private bool CheckUpward(byte idx)
-    {
-        var player = _pieces[idx].Player;
-        int count = 0;
-        int i = _pieces[idx].Row;
-        int j = 0;
-        for (; i >= 0; i--)
-        {
-            if (_pieces[idx - (7 * j)].Player != null &&
-                _pieces[idx - (7*j)].Player.Id == player.Id)
-            {
-                count++;
-            }
-            else
-            {
-                break;
-            }
-            j++;
-        }
-        return count >= 4;
-    }
+    
 
-    private bool CheckDiagonalRightUp(byte idx)
+    private bool CheckDiagonalRightUp(short idx)
     {
         var player = _pieces[idx].Player;
         int count = 0;
@@ -228,7 +269,7 @@ public class GameState
         return count >= 4;
     }
 
-    private bool CheckDiagonalLeftUp(byte idx)
+    private bool CheckDiagonalLeftUp(short idx)
     {
         var player = _pieces[idx].Player;
         int count = 0;
@@ -254,7 +295,7 @@ public class GameState
         return count >= 4;
     }
 
-    private bool CheckDiagonalLeftDown(byte idx)
+    private bool CheckDiagonalLeftDown(short idx)
     {
         var player = _pieces[idx].Player;
         int count = 0;
@@ -281,7 +322,7 @@ public class GameState
     }
 
 
-    private bool CheckDiagonalRightDown(byte idx)
+    private bool CheckDiagonalRightDown(short idx)
     {
         var player = _pieces[idx].Player;
         int count = 0;
@@ -308,20 +349,17 @@ public class GameState
     }
 
     public WinState CheckForWin()
-    {
-        //obtener el current player
-
-
+    {        
         return _CheckForWin;
 
     }
 
     private WinState _CheckForWin;
 
-    private WinState CheckForWin(byte idx)
+    private WinState CheckForWin(short idx)
     {
         //obtener el current player
-        if (CheckFordward(idx))
+        if (CheckHorizontal(idx))
         {
             if (_pieces[idx].Player.Id == 1)
             {
@@ -332,7 +370,19 @@ public class GameState
                 _CheckForWin = WinState.Player2;
             }
         }
-        if (CheckBackward(idx))
+        if (CheckDiagonaUp(idx))
+        {
+            if (_pieces[idx].Player.Id == 1)
+            {
+                _CheckForWin = WinState.Player1;
+            }
+            else
+            {
+                _CheckForWin = WinState.Player2;
+            }
+        }
+
+        if (CheckDiagonaDown(idx))
         {
             if (_pieces[idx].Player.Id == 1)
             {
@@ -354,70 +404,8 @@ public class GameState
             {
                 _CheckForWin = WinState.Player2;
             }
-        }
-
-        if (CheckUpward(idx))
-        {
-            if (_pieces[idx].Player.Id == 1)
-            {
-                _CheckForWin = WinState.Player1;
-            }
-            else
-            {
-                _CheckForWin = WinState.Player2;
-            }
-        }
-
-        if (CheckDiagonalRightUp (idx))
-        {
-            if (_pieces[idx].Player.Id == 1)
-            {
-                _CheckForWin = WinState.Player1;
-            }
-            else
-            {
-                _CheckForWin = WinState.Player2;
-            }
-        }
-
-        if (CheckDiagonalLeftUp(idx))
-        {
-            if (_pieces[idx].Player.Id == 1)
-            {
-                _CheckForWin = WinState.Player1;
-            }
-            else
-            {
-                _CheckForWin = WinState.Player2;
-            }
-        }
-
-        if (CheckDiagonalLeftDown(idx))
-        {
-            if (_pieces[idx].Player.Id == 1)
-            {
-                _CheckForWin = WinState.Player1;
-            }
-            else
-            {
-                _CheckForWin = WinState.Player2;
-            }
-        }
-
-        if (CheckDiagonalRightDown(idx))
-        {
-            if (_pieces[idx].Player.Id == 1)
-            {
-                _CheckForWin = WinState.Player1;
-            }
-            else
-            {
-                _CheckForWin = WinState.Player2;
-            }
-        }
-
-        //TODO check diagonal
-
+        }     
+        
         return _CheckForWin;
     }
 
@@ -426,21 +414,22 @@ public class GameState
 public class Ficha {
        
 
-    public byte Id { get; set; }
+    public short Id { get; set; }
 
     public Player Player { get; set; }
 
     public bool IsOccupied { get; set; }
 
-    public byte Column { get; set; }
-    public byte Row { get; set; }
+    public short Column { get; set; }
+    public short Row { get; set; }
 
 }
 
 
 public class Player
 {
-   
+    public int GamesPlayed { get; set; }
+    public int Score { get; set; }
     public int Id { get; set; }
     public string? Name { get; set; }
     
